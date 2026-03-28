@@ -131,20 +131,17 @@ def webhook():
 
     if state == "inicio":
         resposta = groq(
-            "Você é o assistente do PET Enfermagem UFC. Cumprimente o usuário e pergunte se ele é petiano.",
+            "Você é o assistente do PET Enfermagem UFC. Cumprimente o usuário de forma curta e casual considerando o que ele disse.",
             text
         )
         send_message(chat_id, resposta)
+        send_message(chat_id, "Você é petiano?")
         user_states[chat_id] = "aguarda_petiano"
 
     elif state == "aguarda_petiano":
         intencao = detectar_intencao(text, "é petiano")
         if intencao == "sim":
-            resposta = groq(
-                "Usuário confirmou que é petiano. Reaja brevemente e pergunte se é do PET Enfermagem UFC.",
-                text
-            )
-            send_message(chat_id, resposta)
+            send_message(chat_id, "Você é petiano do PET Enfermagem UFC?")
             user_states[chat_id] = "aguarda_pet_enf"
         elif intencao == "nao":
             resposta = groq(
@@ -164,7 +161,7 @@ def webhook():
         intencao = detectar_intencao(text, "é petiano do PET Enfermagem UFC")
         if intencao == "sim":
             resposta = groq(
-                "Usuário confirmou que é do PET Enfermagem UFC. Reaja e peça a senha de acesso.",
+                "Usuário confirmou que é do PET Enfermagem UFC. Peça a senha de acesso de forma casual.",
                 text
             )
             send_message(chat_id, resposta)
