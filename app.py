@@ -72,9 +72,11 @@ def webhook():
         return jsonify({"status": "ok"})
 
     # Verifica timeout antes de processar
+# Verifica timeout antes de processar
     expirou = verificar_timeout(chat_id)
     if expirou:
-        send_message(chat_id, "⏱️ Sua sessão expirou por inatividade. Vamos recomeçar!")
+        send_message(chat_id, "⏱️ Sua sessão foi encerrada por inatividade. Para acessar novamente, inicie uma nova conversa.")
+        return jsonify({"status": "ok"})
 
     # Atualiza o tempo da última interação
     user_last_interaction[chat_id] = time.time()
