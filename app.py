@@ -48,7 +48,7 @@ def webhook():
             send_message(chat_id, "Você é petiano do PET Enfermagem UFC?")
             user_states[chat_id] = "aguarda_pet_enf"
         elif is_negative(text):
-            send_message(chat_id, "Entendido! Este bot é exclusivo para petianos. Até mais!")
+            send_message(chat_id, "Saia daqui, não quero falar com você! 😤")
             user_states.pop(chat_id, None)
         else:
             send_message(chat_id, "Por favor, responda com Sim ou Não.")
@@ -58,14 +58,14 @@ def webhook():
             send_message(chat_id, "Ótimo! Por favor, informe a senha de acesso:")
             user_states[chat_id] = "aguarda_senha"
         elif is_negative(text):
-            send_message(chat_id, "Este bot é exclusivo para o PET Enfermagem UFC. Até mais!")
+            send_message(chat_id, "Saia daqui, não quero falar com você! 😤")
             user_states.pop(chat_id, None)
         else:
             send_message(chat_id, "Por favor, responda com Sim ou Não.")
 
     elif state == "aguarda_senha":
         if text.strip().lower() == SENHA_CORRETA:
-            send_message(chat_id, "✅ Acesso autorizado! Bem-vindo ao PET Enfermagem UFC!")
+            send_message(chat_id, "✅ Acesso autorizado! Bem-vindo ao PET Enfermagem UFC! Sobre o que você deseja saber?")
             user_states[chat_id] = "autorizado"
         else:
             send_message(chat_id, "❌ Senha incorreta. Acesso encerrado.")
