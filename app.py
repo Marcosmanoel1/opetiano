@@ -11,7 +11,7 @@ user_last_interaction = {}
 
 SENHA_CORRETA = "amoseresta"
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 TIMEOUT_SEGUNDOS = 30
 
 
@@ -47,20 +47,27 @@ def send_menu(chat_id, text):
     requests.post(url, json=payload)
 
 
-def gemini(system_prompt, user_message):
-    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
-    payload = {
-        "contents": [
-            {"role": "user", "parts": [{"text": f"{system_prompt}\n\nMensagem do usuário: {user_message}"}]}
-        ]
+def groq(system_prompt, user_message):
+    url = "https://api.groq.com/openai/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {GROQ_API_KEY}",
+        "Content-Type": "application/json"
     }
-    response = requests.post(url, json=payload)
+    payload = {
+        "model": "llama3-8b-8192",
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_message}
+        ],
+        "max_tokens": 300
+    }
+    response = requests.post(url, json=payload, headers=headers)
     data = response.json()
-    print("GEMINI RESPONSE:", data)
-    if "candidates" not in data:
-        print("ERRO GEMINI:", data)
+    print("GROQ RESPONSE:", data)
+    if "choices" not in data:
+        print("ERRO GROQ:", data)
         return "Desculpe, tive um problema interno. Tente novamente."
-    return data["candidates"][0]["content"]["parts"][0]["text"]
+    return data["choices"][0]["message"]["content"]
 
 
 def verificar_timeout(chat_id):
@@ -76,9 +83,10 @@ def detectar_intencao(text, tipo):
     system = f"""Você deve analisar a mensagem do usuário e detectar a intenção.
 Responda APENAS com um JSON no formato: {{"intencao": "sim"}} ou {{"intencao": "nao"}} ou {{"intencao": "indefinido"}}
 Contexto: o usuário está sendo perguntado se {tipo}.
-Detecte se a resposta é positiva, negativa ou indefinida."""
+Detecte se a resposta é positiva, negativa ou indefinida.
+Responda SOMENTE com o JSON, sem mais nada."""
     try:
-        resposta = gemini(system, text)
+        resposta = groq(system, text)
         resposta = resposta.strip().replace("```json", "").replace("```", "")
         data = json.loads(resposta)
         return data.get("intencao", "indefinido")
@@ -99,7 +107,7 @@ def webhook():
 
     expirou = verificar_timeout(chat_id)
     if expirou:
-        resposta = gemini(
+        resposta = groq(
             "Você é o assistente do PET Enfermagem UFC. Avise ao usuário de forma simpática que a sessão expirou por inatividade e que ele pode enviar uma mensagem para começar novamente.",
             text
         )
@@ -110,10 +118,11 @@ def webhook():
     state = user_states.get(chat_id, "inicio")
 
     if state == "inicio":
-        resposta = gemini(
+        resposta = groq(
             """Você é o assistente virtual do PET Enfermagem UFC, um grupo de educação tutorial da Universidade Federal do Ceará.
 Seja simpático e acolhedor. Cumprimente o usuário de forma inteligente e natural considerando o que ele disse.
-Ao final da sua resposta, SEMPRE pergunte: 'Você é petiano?' de forma natural.""",
+Ao final da sua resposta, SEMPRE pergunte: 'Você é petiano?' de forma natural.
+Responda em português brasileiro.""",
             text
         )
         send_message(chat_id, resposta)
@@ -122,25 +131,28 @@ Ao final da sua resposta, SEMPRE pergunte: 'Você é petiano?' de forma natural.
     elif state == "aguarda_petiano":
         intencao = detectar_intencao(text, "é petiano")
         if intencao == "sim":
-            resposta = gemini(
+            resposta = groq(
                 """Você é o assistente do PET Enfermagem UFC. O usuário confirmou que é petiano.
-Reaja de forma animada e natural. Ao final SEMPRE pergunte: 'Você é petiano do PET Enfermagem UFC?' de forma natural.""",
+Reaja de forma animada e natural. Ao final SEMPRE pergunte: 'Você é petiano do PET Enfermagem UFC?' de forma natural.
+Responda em português brasileiro.""",
                 text
             )
             send_message(chat_id, resposta)
             user_states[chat_id] = "aguarda_pet_enf"
         elif intencao == "nao":
-            resposta = gemini(
+            resposta = groq(
                 """Você é o assistente do PET Enfermagem UFC. O usuário disse que NÃO é petiano.
-Responda de forma bem-humorada e um pouco debochada dizendo que este bot é exclusivo para petianos e que ele deve sair. Seja criativo!""",
+Responda de forma bem-humorada e um pouco debochada dizendo que este bot é exclusivo para petianos e que ele deve sair. Seja criativo!
+Responda em português brasileiro.""",
                 text
             )
             send_message(chat_id, resposta)
             user_states.pop(chat_id, None)
         else:
-            resposta = gemini(
+            resposta = groq(
                 """Você é o assistente do PET Enfermagem UFC. O usuário não respondeu claramente se é petiano.
-Peça gentilmente que ele responda com sim ou não se é petiano.""",
+Peça gentilmente que ele responda com sim ou não se é petiano.
+Responda em português brasileiro.""",
                 text
             )
             send_message(chat_id, resposta)
@@ -148,34 +160,38 @@ Peça gentilmente que ele responda com sim ou não se é petiano.""",
     elif state == "aguarda_pet_enf":
         intencao = detectar_intencao(text, "é petiano do PET Enfermagem UFC")
         if intencao == "sim":
-            resposta = gemini(
+            resposta = groq(
                 """Você é o assistente do PET Enfermagem UFC. O usuário confirmou que é do PET Enfermagem UFC.
-Reaja com entusiasmo! Ao final SEMPRE peça a senha de acesso de forma natural.""",
+Reaja com entusiasmo! Ao final SEMPRE peça a senha de acesso de forma natural.
+Responda em português brasileiro.""",
                 text
             )
             send_message(chat_id, resposta)
             user_states[chat_id] = "aguarda_senha"
         elif intencao == "nao":
-            resposta = gemini(
+            resposta = groq(
                 """Você é o assistente do PET Enfermagem UFC. O usuário disse que NÃO é do PET Enfermagem UFC.
-Responda de forma simpática dizendo que este bot é exclusivo para o PET Enfermagem UFC especificamente.""",
+Responda de forma simpática dizendo que este bot é exclusivo para o PET Enfermagem UFC especificamente.
+Responda em português brasileiro.""",
                 text
             )
             send_message(chat_id, resposta)
             user_states.pop(chat_id, None)
         else:
-            resposta = gemini(
+            resposta = groq(
                 """Você é o assistente do PET Enfermagem UFC. O usuário não respondeu claramente.
-Peça gentilmente que responda com sim ou não se é do PET Enfermagem UFC.""",
+Peça gentilmente que responda com sim ou não se é do PET Enfermagem UFC.
+Responda em português brasileiro.""",
                 text
             )
             send_message(chat_id, resposta)
 
     elif state == "aguarda_senha":
         if text.strip().lower() == SENHA_CORRETA:
-            resposta = gemini(
+            resposta = groq(
                 """Você é o assistente do PET Enfermagem UFC. O usuário acabou de se autenticar com sucesso.
-Dê as boas vindas de forma calorosa e animada! Seja criativo e mencione que agora ele tem acesso ao sistema.""",
+Dê as boas vindas de forma calorosa e animada! Seja criativo e mencione que agora ele tem acesso ao sistema.
+Responda em português brasileiro.""",
                 text
             )
             send_message(chat_id, resposta)
@@ -183,9 +199,10 @@ Dê as boas vindas de forma calorosa e animada! Seja criativo e mencione que ago
             send_menu(chat_id, "Sobre o que você deseja saber?")
             user_states[chat_id] = "menu"
         else:
-            resposta = gemini(
+            resposta = groq(
                 """Você é o assistente do PET Enfermagem UFC. O usuário digitou uma senha incorreta.
-Informe que a senha está incorreta e que o acesso foi encerrado. Seja simpático mas firme.""",
+Informe que a senha está incorreta e que o acesso foi encerrado. Seja simpático mas firme.
+Responda em português brasileiro.""",
                 text
             )
             send_message(chat_id, resposta)
@@ -208,9 +225,10 @@ Informe que a senha está incorreta e que o acesso foi encerrado. Seja simpátic
             send_message(chat_id, "💰 *Bolsa caiu?*\n\nAinda não... mas quando cair você vai saber! 😅")
             send_menu(chat_id, "O que mais deseja saber?")
         else:
-            resposta = gemini(
+            resposta = groq(
                 """Você é o assistente do PET Enfermagem UFC. O usuário está autenticado e enviou uma mensagem fora do menu.
-Responda de forma simpática e peça que escolha uma das opções do menu disponível.""",
+Responda de forma simpática e peça que escolha uma das opções do menu disponível.
+Responda em português brasileiro.""",
                 text
             )
             send_message(chat_id, resposta)
