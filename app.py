@@ -48,7 +48,7 @@ def send_menu(chat_id, text):
 
 
 def gemini(system_prompt, user_message):
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
     payload = {
         "system_instruction": {
             "parts": [{"text": system_prompt}]
@@ -59,6 +59,10 @@ def gemini(system_prompt, user_message):
     }
     response = requests.post(url, json=payload)
     data = response.json()
+    print("GEMINI RESPONSE:", data)
+    if "candidates" not in data:
+        print("ERRO GEMINI:", data)
+        return "Desculpe, tive um problema interno. Tente novamente."
     return data["candidates"][0]["content"]["parts"][0]["text"]
 
 
