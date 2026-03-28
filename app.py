@@ -72,7 +72,6 @@ def webhook():
         return jsonify({"status": "ok"})
 
     # Verifica timeout antes de processar
-# Verifica timeout antes de processar
     expirou = verificar_timeout(chat_id)
     if expirou:
         send_message(chat_id, "⏱️ Sua sessão foi encerrada por inatividade. Para acessar novamente, inicie uma nova conversa.")
@@ -108,7 +107,7 @@ def webhook():
             send_message(chat_id, "Por favor, responda com Sim ou Não.")
 
     elif state == "aguarda_senha":
-if text.strip().lower() == SENHA_CORRETA:
+        if text.strip().lower() == SENHA_CORRETA:
             send_message(chat_id, "✅ Acesso autorizado! Bem-vindo ao PET Enfermagem UFC!")
             time.sleep(1)
             menu_principal(chat_id)
@@ -146,4 +145,3 @@ def index():
 
 if __name__ == "__main__":
     app.run(debug=False)
-
