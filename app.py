@@ -53,13 +53,7 @@ def groq(system_prompt, user_message):
         "Authorization": f"Bearer {GROQ_API_KEY}",
         "Content-Type": "application/json"
     }
-instrucao_base = """Você é um assistente de um grupo universitário chamado PET Enfermagem UFC. 
-Regras OBRIGATÓRIAS:
-- Respostas CURTAS, máximo 2 frases
-- Tom casual e descontraído, como uma conversa no WhatsApp
-- Pode ser levemente cômico quando apropriado
-- NUNCA use listas, bullets ou formatação
-- Vá direto ao ponto"""
+instrucao_base = "Responda em UMA frase curta e casual, sem enrolação. Seja direto e leve, como uma mensagem de WhatsApp. Proibido listas ou textos longos."
 
     payload = {
         "model": "llama-3.3-70b-versatile",
@@ -67,7 +61,7 @@ Regras OBRIGATÓRIAS:
             {"role": "system", "content": f"{instrucao_base}\n\n{system_prompt}"},
             {"role": "user", "content": user_message}
         ],
-        "max_tokens": 120
+        "max_tokens": 60
     }
     response = requests.post(url, json=payload, headers=headers)
     data = response.json()
