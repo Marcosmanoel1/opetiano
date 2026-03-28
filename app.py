@@ -197,9 +197,10 @@ def webhook():
             send_message(chat_id, resposta)
             user_states.pop(chat_id, None)
 
-    elif state == "menu":
-        intencao_saida = detectar_intencao(text, "quer encerrar, sair ou não quer mais conversar")
-        if intencao_saida == "sim":
+elif state == "menu":
+        palavras_saida = ["nada", "sair", "tchau", "encerrar", "não quero", "nao quero", "obrigado", "obg", "valeu", "até", "ate", "flw", "bye"]
+        quer_sair = any(p in text.strip().lower() for p in palavras_saida)
+        if quer_sair:
             resposta = groq(
                 "Usuário quer encerrar a conversa. Despeça-se de forma simpática e curta.",
                 text
