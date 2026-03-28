@@ -10,7 +10,7 @@ user_last_interaction = {}
 
 SENHA_CORRETA = "amoseresta"
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
-TIMEOUT_SEGUNDOS = 120  # 2 minutos
+TIMEOUT_SEGUNDOS = 30  # 30 segundos
 
 
 def send_message(chat_id, text, keyboard=None):
