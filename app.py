@@ -106,8 +106,9 @@ def webhook():
             send_message(chat_id, "Por favor, responda com Sim ou Não.")
 
     elif state == "aguarda_senha":
-        if text.strip().lower() == SENHA_CORRETA:
+if text.strip().lower() == SENHA_CORRETA:
             send_message(chat_id, "✅ Acesso autorizado! Bem-vindo ao PET Enfermagem UFC!")
+            time.sleep(1)
             menu_principal(chat_id)
         else:
             send_message(chat_id, "❌ Senha incorreta. Acesso encerrado.")
