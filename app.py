@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 import requests
 import os
 import time
+import json
 
 app = Flask(__name__)
 
@@ -9,8 +10,9 @@ user_states = {}
 user_last_interaction = {}
 
 SENHA_CORRETA = "amoseresta"
-TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
-TIMEOUT_SEGUNDOS = 30  # 30 segundos
+TELEGRAM_TOKEN = os.environ.get("8674647531:AAE4WsUjqyRvwJCgNSXXoxE6Aj4BWtolVg4")
+GEMINI_API_KEY = os.environ.get("AIzaSyBjUCp_70Uvi5GTXZTdotmVRweFVDBXJjs")
+TIMEOUT_SEGUNDOS = 30
 
 
 def send_message(chat_id, text):
@@ -45,6 +47,21 @@ def send_menu(chat_id, text):
     requests.post(url, json=payload)
 
 
+def gemini(system_prompt, user_message):
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
+    payload = {
+        "system_instruction": {
+            "parts": [{"text": system_prompt}]
+        },
+        "contents": [
+            {"role": "user", "parts": [{"text": user_message}]}
+        ]
+    }
+    response = requests.post(url, json=payload)
+    data = response.json()
+    return data["candidates"][0]["content"]["parts"][0]["text"]
+
+
 def verificar_timeout(chat_id):
     agora = time.time()
     ultima = user_last_interaction.get(chat_id, 0)
@@ -54,14 +71,18 @@ def verificar_timeout(chat_id):
     return False
 
 
-def is_positive(text):
-    positivos = ["sim", "s", "yes", "y", "claro", "com certeza", "afirmativo"]
-    return text.strip().lower() in positivos
-
-
-def is_negative(text):
-    negativos = ["não", "nao", "n", "no", "negativo"]
-    return text.strip().lower() in negativos
+def detectar_intencao(text, tipo):
+    system = f"""Você deve analisar a mensagem do usuário e detectar a intenção.
+Responda APENAS com um JSON no formato: {{"intencao": "sim"}} ou {{"intencao": "nao"}} ou {{"intencao": "indefinido"}}
+Contexto: o usuário está sendo perguntado se {tipo}.
+Detecte se a resposta é positiva, negativa ou indefinida."""
+    try:
+        resposta = gemini(system, text)
+        resposta = resposta.strip().replace("```json", "").replace("```", "")
+        data = json.loads(resposta)
+        return data.get("intencao", "indefinido")
+    except:
+        return "indefinido"
 
 
 @app.route("/webhook", methods=["POST"])
@@ -75,48 +96,98 @@ def webhook():
     except (KeyError, TypeError):
         return jsonify({"status": "ok"})
 
-    # Verifica timeout antes de processar
     expirou = verificar_timeout(chat_id)
     if expirou:
-        send_message(chat_id, "⏱️ Sua sessão foi encerrada por inatividade. Envie qualquer mensagem para começar novamente.")
+        resposta = gemini(
+            "Você é o assistente do PET Enfermagem UFC. Avise ao usuário de forma simpática que a sessão expirou por inatividade e que ele pode enviar uma mensagem para começar novamente.",
+            text
+        )
+        send_message(chat_id, resposta)
+        return jsonify({"status": "ok"})
 
-    # Atualiza o tempo da última interação
     user_last_interaction[chat_id] = time.time()
-
     state = user_states.get(chat_id, "inicio")
 
     if state == "inicio":
-        send_message(chat_id, "Olá! Você é petiano?")
+        resposta = gemini(
+            """Você é o assistente virtual do PET Enfermagem UFC, um grupo de educação tutorial da Universidade Federal do Ceará.
+Seja simpático e acolhedor. Cumprimente o usuário de forma inteligente e natural considerando o que ele disse.
+Ao final da sua resposta, SEMPRE pergunte: 'Você é petiano?' de forma natural.""",
+            text
+        )
+        send_message(chat_id, resposta)
         user_states[chat_id] = "aguarda_petiano"
 
     elif state == "aguarda_petiano":
-        if is_positive(text):
-            send_message(chat_id, "Você é petiano do PET Enfermagem UFC?")
+        intencao = detectar_intencao(text, "é petiano")
+        if intencao == "sim":
+            resposta = gemini(
+                """Você é o assistente do PET Enfermagem UFC. O usuário confirmou que é petiano.
+Reaja de forma animada e natural. Ao final SEMPRE pergunte: 'Você é petiano do PET Enfermagem UFC?' de forma natural.""",
+                text
+            )
+            send_message(chat_id, resposta)
             user_states[chat_id] = "aguarda_pet_enf"
-        elif is_negative(text):
-            send_message(chat_id, "Saia daqui, não quero falar com você! 😤")
+        elif intencao == "nao":
+            resposta = gemini(
+                """Você é o assistente do PET Enfermagem UFC. O usuário disse que NÃO é petiano.
+Responda de forma bem-humorada e um pouco debochada dizendo que este bot é exclusivo para petianos e que ele deve sair. Seja criativo!""",
+                text
+            )
+            send_message(chat_id, resposta)
             user_states.pop(chat_id, None)
         else:
-            send_message(chat_id, "Por favor, responda com Sim ou Não.")
+            resposta = gemini(
+                """Você é o assistente do PET Enfermagem UFC. O usuário não respondeu claramente se é petiano.
+Peça gentilmente que ele responda com sim ou não se é petiano.""",
+                text
+            )
+            send_message(chat_id, resposta)
 
     elif state == "aguarda_pet_enf":
-        if is_positive(text):
-            send_message(chat_id, "Ótimo! Por favor, informe a senha de acesso:")
+        intencao = detectar_intencao(text, "é petiano do PET Enfermagem UFC")
+        if intencao == "sim":
+            resposta = gemini(
+                """Você é o assistente do PET Enfermagem UFC. O usuário confirmou que é do PET Enfermagem UFC.
+Reaja com entusiasmo! Ao final SEMPRE peça a senha de acesso de forma natural.""",
+                text
+            )
+            send_message(chat_id, resposta)
             user_states[chat_id] = "aguarda_senha"
-        elif is_negative(text):
-            send_message(chat_id, "Este bot é exclusivo para o PET Enfermagem UFC. Até mais!")
+        elif intencao == "nao":
+            resposta = gemini(
+                """Você é o assistente do PET Enfermagem UFC. O usuário disse que NÃO é do PET Enfermagem UFC.
+Responda de forma simpática dizendo que este bot é exclusivo para o PET Enfermagem UFC especificamente.""",
+                text
+            )
+            send_message(chat_id, resposta)
             user_states.pop(chat_id, None)
         else:
-            send_message(chat_id, "Por favor, responda com Sim ou Não.")
+            resposta = gemini(
+                """Você é o assistente do PET Enfermagem UFC. O usuário não respondeu claramente.
+Peça gentilmente que responda com sim ou não se é do PET Enfermagem UFC.""",
+                text
+            )
+            send_message(chat_id, resposta)
 
     elif state == "aguarda_senha":
         if text.strip().lower() == SENHA_CORRETA:
-            send_message(chat_id, "✅ Acesso autorizado! Bem-vindo ao PET Enfermagem UFC!")
+            resposta = gemini(
+                """Você é o assistente do PET Enfermagem UFC. O usuário acabou de se autenticar com sucesso.
+Dê as boas vindas de forma calorosa e animada! Seja criativo e mencione que agora ele tem acesso ao sistema.""",
+                text
+            )
+            send_message(chat_id, resposta)
             time.sleep(1)
             send_menu(chat_id, "Sobre o que você deseja saber?")
             user_states[chat_id] = "menu"
         else:
-            send_message(chat_id, "❌ Senha incorreta. Acesso encerrado.")
+            resposta = gemini(
+                """Você é o assistente do PET Enfermagem UFC. O usuário digitou uma senha incorreta.
+Informe que a senha está incorreta e que o acesso foi encerrado. Seja simpático mas firme.""",
+                text
+            )
+            send_message(chat_id, resposta)
             user_states.pop(chat_id, None)
 
     elif state == "menu":
@@ -136,7 +207,13 @@ def webhook():
             send_message(chat_id, "💰 *Bolsa caiu?*\n\nAinda não... mas quando cair você vai saber! 😅")
             send_menu(chat_id, "O que mais deseja saber?")
         else:
-            send_menu(chat_id, "Por favor, escolha uma das opções do menu.")
+            resposta = gemini(
+                """Você é o assistente do PET Enfermagem UFC. O usuário está autenticado e enviou uma mensagem fora do menu.
+Responda de forma simpática e peça que escolha uma das opções do menu disponível.""",
+                text
+            )
+            send_message(chat_id, resposta)
+            send_menu(chat_id, "O que mais deseja saber?")
 
     return jsonify({"status": "ok"})
 
