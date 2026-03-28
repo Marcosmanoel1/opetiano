@@ -13,10 +13,32 @@ TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 TIMEOUT_SEGUNDOS = 120  # 2 minutos
 
 
-def send_message(chat_id, text):
+def send_message(chat_id, text, keyboard=None):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    payload = {"chat_id": chat_id, "text": text}
+    payload = {
+        "chat_id": chat_id,
+        "text": text,
+        "parse_mode": "Markdown"
+    }
+    if keyboard:
+        payload["reply_markup"] = {
+            "keyboard": keyboard,
+            "resize_keyboard": True,
+            "one_time_keyboard": True
+        }
+    else:
+        payload["reply_markup"] = {"remove_keyboard": True}
     requests.post(url, json=payload)
+
+
+def menu_principal(chat_id):
+    keyboard = [
+        ["📋 Comissões", "📅 Atividades gerais"],
+        ["📖 História do PET", "📌 Pendências do Notion"],
+        ["💰 Bolsa caiu?"]
+    ]
+    send_message(chat_id, "Sobre o que você deseja saber?", keyboard=keyboard)
+    user_states[chat_id] = "menu"
 
 
 def is_positive(text):
@@ -86,13 +108,30 @@ def webhook():
     elif state == "aguarda_senha":
         if text.strip().lower() == SENHA_CORRETA:
             send_message(chat_id, "✅ Acesso autorizado! Bem-vindo ao PET Enfermagem UFC!")
-            user_states[chat_id] = "autorizado"
+            menu_principal(chat_id)
         else:
             send_message(chat_id, "❌ Senha incorreta. Acesso encerrado.")
             user_states.pop(chat_id, None)
 
-    elif state == "autorizado":
-        send_message(chat_id, "Você já está autenticado! Em breve mais funcionalidades estarão disponíveis.")
+    elif state == "menu":
+        if "Comissões" in text:
+            send_message(chat_id, "📋 *Comissões*\n\nAqui ficarão as informações sobre as comissões do PET Enfermagem UFC. Em breve!")
+            menu_principal(chat_id)
+        elif "Atividades" in text:
+            send_message(chat_id, "📅 *Atividades Gerais*\n\nAqui ficarão as informações sobre as atividades gerais do PET. Em breve!")
+            menu_principal(chat_id)
+        elif "História" in text:
+            send_message(chat_id, "📖 *História do PET*\n\nAqui ficará a história do PET Enfermagem UFC. Em breve!")
+            menu_principal(chat_id)
+        elif "Pendências" in text:
+            send_message(chat_id, "📌 *Pendências do Notion*\n\nAqui ficarão as pendências registradas no Notion. Em breve!")
+            menu_principal(chat_id)
+        elif "Bolsa" in text:
+            send_message(chat_id, "💰 *Bolsa caiu?*\n\nAinda não... mas quando cair você vai saber! 😅")
+            menu_principal(chat_id)
+        else:
+            send_message(chat_id, "Por favor, escolha uma das opções do menu.")
+            menu_principal(chat_id)
 
     return jsonify({"status": "ok"})
 
@@ -105,4 +144,6 @@ def index():
 if __name__ == "__main__":
     app.run(debug=False)
 ```
+
+**Commit changes** → **Commit changes**.
 
