@@ -10,8 +10,8 @@ user_states = {}
 user_last_interaction = {}
 
 SENHA_CORRETA = "amoseresta"
-TELEGRAM_TOKEN = os.environ.get("8674647531:AAE4WsUjqyRvwJCgNSXXoxE6Aj4BWtolVg4")
-GEMINI_API_KEY = os.environ.get("AIzaSyC3txifi523bFPy6p4a72cUTUPSZb6VjTc")
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 TIMEOUT_SEGUNDOS = 30
 
 
