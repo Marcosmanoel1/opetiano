@@ -81,13 +81,27 @@ def verificar_timeout(chat_id):
 
 
 def detectar_intencao(text, tipo):
-    system = f"""Analise a mensagem e responda APENAS com JSON: {{"intencao": "sim"}} ou {{"intencao": "nao"}} ou {{"intencao": "indefinido"}}
-O usuário está sendo perguntado se {tipo}."""
+    url = "https://api.groq.com/openai/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {GROQ_API_KEY}",
+        "Content-Type": "application/json"
+    }
+    system = f'Responda APENAS com o JSON {{"intencao": "sim"}} ou {{"intencao": "nao"}} ou {{"intencao": "indefinido"}}. O usuário está sendo perguntado se {tipo}.'
+    payload = {
+        "model": "llama-3.3-70b-versatile",
+        "messages": [
+            {"role": "system", "content": system},
+            {"role": "user", "content": text}
+        ],
+        "max_tokens": 20
+    }
     try:
-        resposta = groq(system, text)
+        response = requests.post(url, json=payload, headers=headers)
+        data = response.json()
+        resposta = data["choices"][0]["message"]["content"]
         resposta = resposta.strip().replace("```json", "").replace("```", "")
-        data = json.loads(resposta)
-        return data.get("intencao", "indefinido")
+        parsed = json.loads(resposta)
+        return parsed.get("intencao", "indefinido")
     except:
         return "indefinido"
 
