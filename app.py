@@ -50,11 +50,8 @@ def send_menu(chat_id, text):
 def gemini(system_prompt, user_message):
     url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
     payload = {
-        "system_instruction": {
-            "parts": [{"text": system_prompt}]
-        },
         "contents": [
-            {"role": "user", "parts": [{"text": user_message}]}
+            {"role": "user", "parts": [{"text": f"{system_prompt}\n\nMensagem do usuário: {user_message}"}]}
         ]
     }
     response = requests.post(url, json=payload)
