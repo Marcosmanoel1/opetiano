@@ -12,7 +12,7 @@ user_last_interaction = {}
 SENHA_CORRETA = "amoseresta"
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
-TIMEOUT_SEGUNDOS = 60
+TIMEOUT_SEGUNDOS = 30
 
 
 def send_message(chat_id, text):
@@ -64,9 +64,7 @@ def groq(system_prompt, user_message):
     }
     response = requests.post(url, json=payload, headers=headers)
     data = response.json()
-    print("GROQ RESPONSE:", data)
     if "choices" not in data:
-        print("ERRO GROQ:", data)
         return "Desculpe, tive um problema interno. Tente novamente."
     return data["choices"][0]["message"]["content"]
 
@@ -104,6 +102,12 @@ def detectar_intencao(text, tipo):
         return parsed.get("intencao", "indefinido")
     except:
         return "indefinido"
+
+
+def quer_sair(text):
+    palavras = ["nada", "sair", "tchau", "encerrar", "não quero", "nao quero",
+                "obrigado", "obg", "valeu", "até", "ate", "flw", "bye", "nada mais"]
+    return any(p in text.strip().lower() for p in palavras)
 
 
 @app.route("/webhook", methods=["POST"])
@@ -197,10 +201,8 @@ def webhook():
             send_message(chat_id, resposta)
             user_states.pop(chat_id, None)
 
-elif state == "menu":
-        palavras_saida = ["nada", "sair", "tchau", "encerrar", "não quero", "nao quero", "obrigado", "obg", "valeu", "até", "ate", "flw", "bye"]
-        quer_sair = any(p in text.strip().lower() for p in palavras_saida)
-        if quer_sair:
+    elif state == "menu":
+        if quer_sair(text):
             resposta = groq(
                 "Usuário quer encerrar a conversa. Despeça-se de forma simpática e curta.",
                 text
