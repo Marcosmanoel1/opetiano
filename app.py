@@ -12,7 +12,7 @@ user_last_interaction = {}
 SENHA_CORRETA = "amoseresta"
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
-TIMEOUT_SEGUNDOS = 30
+TIMEOUT_SEGUNDOS = 60
 
 
 def send_message(chat_id, text):
@@ -183,7 +183,7 @@ def webhook():
             send_message(chat_id, resposta)
             user_states.pop(chat_id, None)
 
-elif state == "menu":
+    elif state == "menu":
         intencao_saida = detectar_intencao(text, "quer encerrar, sair ou não quer mais conversar")
         if intencao_saida == "sim":
             resposta = groq(
@@ -192,9 +192,7 @@ elif state == "menu":
             )
             send_message(chat_id, resposta)
             user_states.pop(chat_id, None)
-            return jsonify({"status": "ok"})
-
-        if "Comissões" in text:
+        elif "Comissões" in text:
             send_message(chat_id, "📋 *Comissões*\n\nAqui ficarão as informações sobre as comissões do PET Enfermagem UFC. Em breve!")
             send_menu(chat_id, "O que mais deseja saber?")
         elif "Atividades" in text:
