@@ -53,8 +53,7 @@ def groq(system_prompt, user_message):
         "Authorization": f"Bearer {GROQ_API_KEY}",
         "Content-Type": "application/json"
     }
-instrucao_base = "Responda em UMA frase curta e casual, sem enrolação. Seja direto e leve, como uma mensagem de WhatsApp. Proibido listas ou textos longos."
-
+    instrucao_base = "Responda em UMA frase curta e casual, sem enrolação. Seja direto e leve, como uma mensagem de WhatsApp. Proibido listas ou textos longos."
     payload = {
         "model": "llama-3.3-70b-versatile",
         "messages": [
@@ -82,11 +81,8 @@ def verificar_timeout(chat_id):
 
 
 def detectar_intencao(text, tipo):
-    system = f"""Você deve analisar a mensagem do usuário e detectar a intenção.
-Responda APENAS com um JSON no formato: {{"intencao": "sim"}} ou {{"intencao": "nao"}} ou {{"intencao": "indefinido"}}
-Contexto: o usuário está sendo perguntado se {tipo}.
-Detecte se a resposta é positiva, negativa ou indefinida.
-Responda SOMENTE com o JSON, sem mais nada."""
+    system = f"""Analise a mensagem e responda APENAS com JSON: {{"intencao": "sim"}} ou {{"intencao": "nao"}} ou {{"intencao": "indefinido"}}
+O usuário está sendo perguntado se {tipo}."""
     try:
         resposta = groq(system, text)
         resposta = resposta.strip().replace("```json", "").replace("```", "")
@@ -109,11 +105,7 @@ def webhook():
 
     expirou = verificar_timeout(chat_id)
     if expirou:
-        resposta = groq(
-            "Você é o assistente do PET Enfermagem UFC. Avise ao usuário de forma simpática que a sessão expirou por inatividade e que ele pode enviar uma mensagem para começar novamente.",
-            text
-        )
-        send_message(chat_id, resposta)
+        send_message(chat_id, "⏱️ Sessão encerrada por inatividade. Manda uma mensagem pra começar de novo!")
         return jsonify({"status": "ok"})
 
     user_last_interaction[chat_id] = time.time()
@@ -121,10 +113,7 @@ def webhook():
 
     if state == "inicio":
         resposta = groq(
-            """Você é o assistente virtual do PET Enfermagem UFC, um grupo de educação tutorial da Universidade Federal do Ceará.
-Seja simpático e acolhedor. Cumprimente o usuário de forma inteligente e natural considerando o que ele disse.
-Ao final da sua resposta, SEMPRE pergunte: 'Você é petiano?' de forma natural.
-Responda em português brasileiro.""",
+            "Você é o assistente do PET Enfermagem UFC. Cumprimente o usuário e pergunte se ele é petiano.",
             text
         )
         send_message(chat_id, resposta)
@@ -134,27 +123,21 @@ Responda em português brasileiro.""",
         intencao = detectar_intencao(text, "é petiano")
         if intencao == "sim":
             resposta = groq(
-                """Você é o assistente do PET Enfermagem UFC. O usuário confirmou que é petiano.
-Reaja de forma animada e natural. Ao final SEMPRE pergunte: 'Você é petiano do PET Enfermagem UFC?' de forma natural.
-Responda em português brasileiro.""",
+                "Usuário confirmou que é petiano. Reaja brevemente e pergunte se é do PET Enfermagem UFC.",
                 text
             )
             send_message(chat_id, resposta)
             user_states[chat_id] = "aguarda_pet_enf"
         elif intencao == "nao":
             resposta = groq(
-                """Você é o assistente do PET Enfermagem UFC. O usuário disse que NÃO é petiano.
-Responda de forma bem-humorada e um pouco debochada dizendo que este bot é exclusivo para petianos e que ele deve sair. Seja criativo!
-Responda em português brasileiro.""",
+                "Usuário disse que NÃO é petiano. Responda de forma bem-humorada dizendo que este bot é só para petianos.",
                 text
             )
             send_message(chat_id, resposta)
             user_states.pop(chat_id, None)
         else:
             resposta = groq(
-                """Você é o assistente do PET Enfermagem UFC. O usuário não respondeu claramente se é petiano.
-Peça gentilmente que ele responda com sim ou não se é petiano.
-Responda em português brasileiro.""",
+                "Usuário não respondeu claramente. Peça para responder sim ou não se é petiano.",
                 text
             )
             send_message(chat_id, resposta)
@@ -163,27 +146,21 @@ Responda em português brasileiro.""",
         intencao = detectar_intencao(text, "é petiano do PET Enfermagem UFC")
         if intencao == "sim":
             resposta = groq(
-                """Você é o assistente do PET Enfermagem UFC. O usuário confirmou que é do PET Enfermagem UFC.
-Reaja com entusiasmo! Ao final SEMPRE peça a senha de acesso de forma natural.
-Responda em português brasileiro.""",
+                "Usuário confirmou que é do PET Enfermagem UFC. Reaja e peça a senha de acesso.",
                 text
             )
             send_message(chat_id, resposta)
             user_states[chat_id] = "aguarda_senha"
         elif intencao == "nao":
             resposta = groq(
-                """Você é o assistente do PET Enfermagem UFC. O usuário disse que NÃO é do PET Enfermagem UFC.
-Responda de forma simpática dizendo que este bot é exclusivo para o PET Enfermagem UFC especificamente.
-Responda em português brasileiro.""",
+                "Usuário disse que NÃO é do PET Enfermagem UFC. Diga que o bot é exclusivo para o PET Enfermagem UFC.",
                 text
             )
             send_message(chat_id, resposta)
             user_states.pop(chat_id, None)
         else:
             resposta = groq(
-                """Você é o assistente do PET Enfermagem UFC. O usuário não respondeu claramente.
-Peça gentilmente que responda com sim ou não se é do PET Enfermagem UFC.
-Responda em português brasileiro.""",
+                "Usuário não respondeu claramente. Peça para responder sim ou não se é do PET Enfermagem UFC.",
                 text
             )
             send_message(chat_id, resposta)
@@ -191,9 +168,7 @@ Responda em português brasileiro.""",
     elif state == "aguarda_senha":
         if text.strip().lower() == SENHA_CORRETA:
             resposta = groq(
-                """Você é o assistente do PET Enfermagem UFC. O usuário acabou de se autenticar com sucesso.
-Dê as boas vindas de forma calorosa e animada! Seja criativo e mencione que agora ele tem acesso ao sistema.
-Responda em português brasileiro.""",
+                "Usuário se autenticou com sucesso. Dê boas vindas curtas e animadas.",
                 text
             )
             send_message(chat_id, resposta)
@@ -202,9 +177,7 @@ Responda em português brasileiro.""",
             user_states[chat_id] = "menu"
         else:
             resposta = groq(
-                """Você é o assistente do PET Enfermagem UFC. O usuário digitou uma senha incorreta.
-Informe que a senha está incorreta e que o acesso foi encerrado. Seja simpático mas firme.
-Responda em português brasileiro.""",
+                "Usuário digitou senha incorreta. Informe que a senha está errada e o acesso foi encerrado.",
                 text
             )
             send_message(chat_id, resposta)
@@ -228,9 +201,7 @@ Responda em português brasileiro.""",
             send_menu(chat_id, "O que mais deseja saber?")
         else:
             resposta = groq(
-                """Você é o assistente do PET Enfermagem UFC. O usuário está autenticado e enviou uma mensagem fora do menu.
-Responda de forma simpática e peça que escolha uma das opções do menu disponível.
-Responda em português brasileiro.""",
+                "Usuário autenticado enviou mensagem fora do menu. Peça que escolha uma opção do menu.",
                 text
             )
             send_message(chat_id, resposta)
