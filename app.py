@@ -18,7 +18,8 @@ def send_message(chat_id, text):
     payload = {
         "chat_id": chat_id,
         "text": text,
-        "parse_mode": "Markdown"
+        "parse_mode": "Markdown",
+        "reply_markup": {"remove_keyboard": True}
     }
     requests.post(url, json=payload)
 
