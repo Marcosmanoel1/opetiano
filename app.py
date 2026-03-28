@@ -183,7 +183,17 @@ def webhook():
             send_message(chat_id, resposta)
             user_states.pop(chat_id, None)
 
-    elif state == "menu":
+elif state == "menu":
+        intencao_saida = detectar_intencao(text, "quer encerrar, sair ou não quer mais conversar")
+        if intencao_saida == "sim":
+            resposta = groq(
+                "Usuário quer encerrar a conversa. Despeça-se de forma simpática e curta.",
+                text
+            )
+            send_message(chat_id, resposta)
+            user_states.pop(chat_id, None)
+            return jsonify({"status": "ok"})
+
         if "Comissões" in text:
             send_message(chat_id, "📋 *Comissões*\n\nAqui ficarão as informações sobre as comissões do PET Enfermagem UFC. Em breve!")
             send_menu(chat_id, "O que mais deseja saber?")
